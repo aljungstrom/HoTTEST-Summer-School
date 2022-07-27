@@ -18,7 +18,7 @@ to solve exercises.
   (in case we update the exercises through `git`)!**
 
 ```agda
-{-# OPTIONS --without-K --allow-unsolved-metas #-}
+-- {-# OPTIONS --without-K --allow-unsolved-metas #-}
 
 module 01-Exercises where
 
