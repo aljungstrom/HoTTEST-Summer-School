@@ -5,7 +5,7 @@ open import new-prelude
 open import Lecture5-notes
 open import Solutions4 using (ap-!; to-from-base; to-from-loop; s2c; c2s; susp-func)
 
-module Solutions5-Tom where
+module Solutions5-tom where
 ```
 
 # 1 point and 2 point circles are equivalent (⋆)
