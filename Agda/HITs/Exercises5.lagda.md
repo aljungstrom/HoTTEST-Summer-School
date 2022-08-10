@@ -21,13 +21,17 @@ these items up as an equivalence S1 ≃ Circle2.
 
 ```agda
 to-from : (x : S1) → from (to x) ≡ x
-to-from = S1-elim (λ x → from (to x) ≡ x) (refl base)
-  (PathOver-roundtrip≡ from to loop
-    (refl base ∙ ap from (ap to loop) ≡⟨ ∙unit-l (ap from (ap to loop)) ⟩
-     ap from (ap to loop)             ≡⟨ to-from-loop ⟩
-     loop ∎))
+to-from =
+  S1-elim (λ x → from (to x) ≡ x)
+    (refl base) -- C-c C-n
+    (PathOver-roundtrip≡ from to loop lem)
+  where
+  lem : refl (from (to base)) ∙ ap from (ap to loop) ≡ loop
+  lem = refl _ ∙ ap from (ap to loop)        ≡⟨ ∙unit-l (ap from (ap to loop)) ⟩
+        ap from (ap to loop)                 ≡⟨ to-from-loop ⟩
+        loop ∎
 
-circles-equivalent : S1 ≃ Circle2
+circles-equivalent : S1 ≃ Circle2 -- C-c C-r
 circles-equivalent = improve (Isomorphism to (Inverse from to-from from-to))
 ```
 
@@ -45,27 +49,31 @@ Prove that rev is an equivalence.  Hint: you will need to state and prove
 one new generalized "path algebra" lemma and to use one of the lemmas from
 the "Functions are group homomorphism" section of Lecture 4's exercises.  
 ```agda
+-- S1Equiv : S1 ≃ S1
+-- S1Equiv = improve (Isomorphism rev (Inverse rev {!!} {!!}))
 
 !! : {A : Type} {x y : A} (p : x ≡ y) → ! (! p) ≡ p
 !! (refl _) = refl _
 
 rev-equiv : is-equiv rev
-rev-equiv = _≃_.is-equivalence (improve (Isomorphism rev lem))
+rev-equiv = Inverse rev rev∘rev rev rev∘rev
   where
-  rev∘rev : rev ∘ rev ∼ id
-  rev∘rev = S1-elim _ (refl base) (PathOver-roundtrip≡ rev rev loop PathOverLem)
-    where
-    PathOverLem : refl (base) ∙ ap rev (ap rev loop) ≡ loop
-    PathOverLem =
-      refl (base) ∙ ap rev (ap rev loop)   ≡⟨ ∙unit-l (ap rev (ap rev loop)) ⟩
-      ap rev (ap rev loop)                 ≡⟨ ap (ap rev) (S1-rec-loop base (! loop)) ⟩
-      ap rev (! loop)                      ≡⟨ ap-! loop ⟩
-      ! (ap rev loop)                      ≡⟨ ap ! (S1-rec-loop base (! loop)) ⟩
-      ! (! loop)                           ≡⟨ !! loop ⟩
-      loop ∎
+  ap-rev-loop : ap rev loop ≡ ! loop
+  ap-rev-loop = S1-rec-loop base (! loop)
 
-  lem : is-bijection rev
-  lem = Inverse rev rev∘rev rev∘rev
+  rev∘rev-loop : ap rev (ap rev loop) ≡ loop
+  rev∘rev-loop =
+    ap rev (ap rev loop)     ≡⟨ ap (ap rev) ap-rev-loop ⟩
+    ap rev (! loop)          ≡⟨ ap-! loop ⟩
+    ! (ap rev loop)          ≡⟨ ap ! ap-rev-loop ⟩
+    ! (! loop)               ≡⟨ !! loop ⟩
+    loop ∎
+
+  rev∘rev : (x : S1) → rev (rev x) ≡ x
+  rev∘rev =
+    S1-elim (λ x → rev (rev x) ≡ x)
+      (refl base)
+      (PathOver-roundtrip≡ rev rev loop (∙unit-l (ap rev (ap rev loop)) ∙ rev∘rev-loop))
 ```
 
 
@@ -81,34 +89,43 @@ path in a path fibration.  Then, to define the map S1 × S1 → Torus, you
 will want to curry it and use S1-rec and/or S1-elim on each circle.  
 
 ```agda
-PathOver-path≡ : ∀ {A B : Type} {g : A → B} {f : A → B}
-                          {a a' : A} {p : a ≡ a'}
-                          {q : (f a) ≡ (g a)}
-                          {r : (f a') ≡ (g a')}
-                        → ap f p ∙ r ≡ q ∙ ap g p
+PathOver-path≡ : ∀ {A B : Type} {g : A → B} {f : A → B} -- (baseMap)
+                          {a a' : A} {p : a ≡ a'} -- base, loop
+                          {q : (f a) ≡ (g a)}     -- baseMap base = baseMap base (qT)
+                          {r : (f a') ≡ (g a')}   -- baseMap base = baseMap base (qT)
+                        → q ∙ ap g p ≡ ap f p ∙ r                   -- ? ?? ?
                         → q ≡ r [ (\ x → (f x) ≡ (g x)) ↓ p ]
-PathOver-path≡ {A} {B} {g} {f} {a} {.a} {refl .a} {.(ap f (refl a) ∙ r)} {r} (refl .(ap f (refl a) ∙ r ∙ ap g (refl a))) =
-  _≃_.map (transport-to-pathover _ _ _ _) (∙unit-l r)
+PathOver-path≡ {A} {B} {g} {f} {a} {.a} {refl .a} {q} {r} h =
+  path-to-pathover (h ∙ ∙unit-l r)
 
 circles-to-torus : S1 → (S1 → Torus)
-circles-to-torus = S1-rec rightF (λ≡ rightF-rightF)
+circles-to-torus =
+  S1-rec baseMap loopMap
   where
-  rightF : S1 → Torus
-  rightF = S1-rec baseT pT
+  baseMap : S1 → Torus
+  baseMap = S1-rec baseT pT
 
-  apRightLoop : ap rightF loop ≡ pT
-  apRightLoop = S1-rec-loop baseT pT
+  ap-baseMap-loop : ap baseMap loop ≡ pT
+  ap-baseMap-loop = S1-rec-loop baseT pT
 
-  rightF-rightF : rightF ∼ rightF
-  rightF-rightF = S1-elim _ qT (PathOver-path≡
-      (ap (λ x → x ∙ qT) apRightLoop
-    ∙ sT
-    ∙ ap (λ x → qT ∙ x) (! apRightLoop)))
+  baseMap-ap-lem : qT ∙ ap baseMap loop ≡ ap baseMap loop ∙ qT
+  baseMap-ap-lem =
+    qT ∙ ap baseMap loop     ≡⟨ ap (λ x → qT ∙ x) ap-baseMap-loop ⟩
+    qT ∙ pT                  ≡⟨ ! sT ⟩
+    pT ∙ qT                  ≡⟨ ap (λ x → x ∙ qT) (! ap-baseMap-loop) ⟩
+    (ap baseMap loop ∙ qT) ∎
+
+  loopMapMain : (x : S1) → baseMap x ≡ baseMap x
+  loopMapMain =
+    S1-elim (λ x → baseMap x ≡ baseMap x)
+            qT
+            (PathOver-path≡ baseMap-ap-lem)
+
+  loopMap : baseMap ≡ baseMap
+  loopMap = λ≡ loopMapMain
 
 circles-to-torus' : S1 × S1 → Torus
 circles-to-torus' (x , y) = circles-to-torus x y
-
-
 ```
 
 **Below are some "extra credit" exercise if you want more to do.  These
@@ -128,7 +145,7 @@ multiplication.
 (⋆) Show that base is a left unit.
 ```agda
 mult-unit-l : (y : S1) → mult base y ≡ y
-mult-unit-l y = refl _
+mult-unit-l y = {!!}
 ```
 
 (⋆) Because we'll need it in a second, show that ap distributes over
@@ -139,7 +156,7 @@ ap-∘ : ∀ {l1 l2 l3 : Level} {A : Type l1} {B : Type l2} {C : Type l3}
        {a a' : A}
        (p : a ≡ a')
      → ap (g ∘ f) p ≡ ap g (ap f p)
-ap-∘ f g (refl _) = refl _
+ap-∘ = {!!}
 ```
 
 (⋆⋆) Suppose we have a curried function f : S1 → A → B.  Under the
@@ -159,10 +176,14 @@ can reduce like this:
 S1-rec-loop-1 : ∀ {A B : Type} {f : A → B} {h : f ≡ f} {a : A}
                      →  ap (\ x → S1-rec f h x a) loop ≡ app≡ h a
 S1-rec-loop-1 {A}{B}{f}{h}{a} =
-  ap (λ x → S1-rec f h x a) loop ≡⟨ (ap-∘ (S1-rec f h) (λ x → x a) loop) ⟩
-  ap (λ x → x a) (ap (S1-rec f h) loop) ≡⟨ ap (ap (λ x → x a)) (S1-rec-loop f h) ⟩
-  ap (λ x → x a) h ≡⟨ refl _ ⟩
+  ap (\ x → S1-rec f h x a) loop           ≡⟨ ap-∘ (S1-rec f h) (λ f → f a) loop ⟩
+  ap (λ f → f a) (ap (S1-rec f h) loop)    ≡⟨ ap (ap (λ f → f a)) lem ⟩
+  ap (λ f → f a) h                         ≡⟨ refl _ ⟩
   app≡ h a ∎
+  where
+  lem : ap (S1-rec f h) loop ≡ h
+  lem = S1-rec-loop f h
+
 ```
 Prove this reduction using ap-∘ and the reduction rule for S1-rec on the loop.  
 
@@ -174,18 +195,12 @@ PathOver-endo≡ : ∀ {A : Type} {f : A → A}
                  {a a' : A} {p : a ≡ a'}
                  {q : (f a) ≡ a}
                  {r : (f a') ≡ a'}
-               → q ∙ p ≡ ap f p ∙ r
+               → {!!}
                → q ≡ r [ (\ x → f x ≡ x) ↓ p ]
-PathOver-endo≡ {p = refl _} {q = q} {r} h =
-  _≃_.map (transport-to-pathover _ _ _ _) (h ∙ ∙unit-l r)
+PathOver-endo≡ {p = (refl _)} {q = q} {r} h = {!!}
 
 mult-unit-r : (x : S1) → mult x base ≡ x
-mult-unit-r =
-  S1-elim _ (refl base)
-            (PathOver-endo≡ (∙unit-l loop
-                           ∙ ! ((λ≡β (S1-elim (λ z → z ≡ z) loop
-                                 (PathOver-path-loop (refl (loop ∙ loop))))) base)
-                           ∙ ! S1-rec-loop-1))
+mult-unit-r = {!!}
 ```
 
 # Suspensions and the 2-point circle
@@ -196,16 +211,16 @@ declare rewrites for the reduction rules on the point constructors.
 postulate
   Susp-rec-north : {l : Level} {A : Type} {X : Type l}
                  (n : X) (s : X) (m : A → n ≡ s)
-                 → Susp-rec n s m northS ≡ n
+                 → Susp-rec n s m northS ≡ {!!}
   Susp-rec-south : {l : Level} {A : Type} {X : Type l}
                    (n : X) (s : X) (m : A → n ≡ s)
-                   → Susp-rec n s m southS ≡ s
-{-# REWRITE Susp-rec-north #-}
-{-# REWRITE Susp-rec-south #-}
+                   → Susp-rec n s m southS ≡ {!!}
+-- {-# REWRITE Susp-rec-north #-}
+-- {-# REWRITE Susp-rec-south #-}
 postulate
   Susp-rec-merid : {l : Level} {A : Type} {X : Type l}
                    (n : X) (s : X) (m : A → n ≡ s)
-                 → (x : A) → ap (Susp-rec n s m) (merid x) ≡ m x
+                 → (x : A) → ap (Susp-rec n s m) (merid x) ≡ {!!}
 ```
 
 (⋆) Postulate the dependent elimination rule for suspensions:
@@ -213,9 +228,9 @@ postulate
 ```agda
 postulate 
   Susp-elim : {l : Level} {A : Type} (P : Susp A → Type l)
-            → (n : P northS)
-            → (s : P southS)
-            → (m : (x : A) → n ≡ s [ P ↓ merid x ])
+            → (n : {!!})
+            → (s : {!!})
+            → (m : {!merid !})
             → (x : Susp A) → P x
 ```
 
@@ -223,34 +238,17 @@ postulate
 
 ```agda
 c2s2c : (x : Circle2) → s2c (c2s x) ≡ x
-c2s2c =
-  Circle2-elim _ (refl _) (refl _)
-    (PathOver-endo≡ (∙unit-l west
-                     ∙ ! (ap-∘ c2s s2c west ∙ (ap (ap s2c) (Circle2-rec-west _ _ _ _)
-                     ∙ Susp-rec-merid _ _ _ _))))
-    (PathOver-endo≡ (∙unit-l east
-                   ∙ ! (ap-∘ c2s s2c east ∙ ap (ap s2c) (Circle2-rec-east _ _ _ _)
-                      ∙ Susp-rec-merid _ _ _ _)))
+c2s2c = {!!}
 
 s2c2s : (x : Susp Bool) → c2s (s2c x) ≡ x
-s2c2s = Susp-elim _ (refl northS) (refl southS)
-  λ { true → PathOver-endo≡ (∙unit-l (merid true)
-                            ∙ ! (ap-∘ s2c c2s (merid true) ∙ ap (ap c2s) (Susp-rec-merid _ _ _ _)
-                               ∙ Circle2-rec-west _ _ _ _))
-    ; false → PathOver-endo≡ (∙unit-l (merid false)
-                            ∙ ! (ap-∘ s2c c2s (merid false) ∙ ap (ap c2s) (Susp-rec-merid _ _ _ _)
-                               ∙ Circle2-rec-east _ _ _ _))}
+s2c2s = {!!}
 ```
 
 (⋆) Conclude that Circle2 is equivalent to Susp Bool:
 
 ```agda
 Circle2-Susp-Bool : Circle2 ≃ Susp Bool
-Circle2-Susp-Bool =
-  improve
-    (Isomorphism
-      c2s
-      (Inverse s2c c2s2c s2c2s))
+Circle2-Susp-Bool = {!!}
 ```
 
 # Functoriality of suspension (⋆⋆)
@@ -261,21 +259,11 @@ that this operation is functorial, meaning that it preserves identity
 and composition of functions:
 ```agda
 susp-func-id : ∀ {X : Type} → susp-func {X} id ∼ id
-susp-func-id = Susp-elim _ (refl northS) (refl southS) λ x → PathOver-endo≡ (∙unit-l (merid x) ∙ ! (Susp-rec-merid _ _ _ _))
+susp-func-id = {!!}
 
 susp-func-∘ : ∀ {X Y Z : Type} (f : X → Y) (g : Y → Z)
             → susp-func {X} (g ∘ f) ∼ susp-func g ∘ susp-func f
-susp-func-∘ f g = Susp-elim _ (refl northS) (refl southS)
-  λ x → PathOver-path≡
-     (Susp-rec-merid _ _ _ _
-    ∙ ! (∙unit-l _
-    ∙  ap-∘ (susp-func f) (susp-func g) (merid x)
-    ∙  (ap (ap (susp-func g)) (Susp-rec-merid _ _ _ _)
-     ∙ Susp-rec-merid _ _ _ _)))
-
-
-
+susp-func-∘ f g = {!!}
 ```
-
 
 

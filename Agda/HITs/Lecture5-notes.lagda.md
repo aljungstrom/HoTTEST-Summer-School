@@ -198,12 +198,12 @@ open RememberTheseFromLastTime public
 ```
 
 ```agda
-PathOver-roundtrip≡ : ∀ {A B : Type} (g : B → A) (f : A → B)
-                        {a a' : A} (p : a ≡ a')
-                        {q : g (f a) ≡ a}
-                        {r : g (f a') ≡ a'}
-                      → ! q ∙ ((ap g (ap f p)) ∙ r) ≡ p
-                      → q ≡ r [ (\ x → g (f x) ≡ x) ↓ p ]
+PathOver-roundtrip≡ : ∀ {A B : Type} (g : B → A) (f : A → B) -- g = from, f = to
+                        {a a' : A} (p : a ≡ a') -- a, a' = base , p = loop
+                        {q : g (f a) ≡ a} -- : from (to base) ≡ base (refl)
+                        {r : g (f a') ≡ a'} -- : from (to base) ≡ base (refl)
+                      → ! q ∙ ((ap g (ap f p)) ∙ r) ≡ p --
+                      → q ≡ r [ (\ x → g (f x) ≡ x) ↓ p ] -- refl ≡ refl [ λ x → from (to x) = x ↓ loop ] 
 PathOver-roundtrip≡ g f  (refl _) {q = q} {r} h =
   path-to-pathover (ap (\ H → q ∙ H) (! h) ∙
                     ( ∙assoc _ _ (refl _ ∙ r) ∙
