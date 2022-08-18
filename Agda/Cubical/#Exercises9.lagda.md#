@@ -73,7 +73,7 @@ rUnit {x = x} {y = y} p i j =
 
 rUnit' : {A : Type ℓ} {x y : A} (p : x ≡ y) → p ∙ refl ≡ p
 rUnit' {x = x} {y = y} p i j =
-  hcomp (λ {k r → {!r!}} )
+  hcomp (λ {k r → {!!}} )
         {!lUnit (refl {x = x})!}
 
 
